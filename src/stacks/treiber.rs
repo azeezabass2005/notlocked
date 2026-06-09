@@ -61,6 +61,7 @@ impl<T> TreiberStack<T> {
 
 #[cfg(test)]
 mod tests {
+    use std::{sync::Arc, thread::{self, JoinHandle}};
     use super::*;
 
     #[test]
@@ -102,5 +103,57 @@ mod tests {
         assert_eq!(stack.pop(), Some(07));
         assert_eq!(stack.pop(), Some(06));
         assert_eq!(stack.pop(), Some(22));
+    }
+
+    #[test]
+    fn test_with_concurrent_push() {
+
+        let stack: Arc<TreiberStack<i32>> = Arc::new(TreiberStack::new());
+
+        let mut all_handles: Vec<JoinHandle<()>> = Vec::new();
+        
+        for _ in 0..100 {
+            let thread_stack = stack.clone();
+            let handle = thread::spawn(move || {
+                for i in 0..100 {
+                    thread_stack.push(i);
+                }
+            });
+          all_handles.push(handle);  
+        }
+
+        for h in all_handles.into_iter() {
+            h.join().unwrap();
+        }
+        for _ in 0..10000 {
+            assert!(stack.pop().is_some());
+        }
+        assert!(stack.pop().is_none());
+    }
+
+    #[test]
+    fn test_with_concurrent_pop() {
+        let stack: Arc<TreiberStack<i32>> = Arc::new(TreiberStack::new());
+
+        for i in 0..10000 {
+            stack.push(i);
+        }
+        
+        let mut all_handles: Vec<JoinHandle<()>> = Vec::new();
+        
+        for _ in 0..100 {
+            let thread_stack = stack.clone();
+            let handle = thread::spawn(move || {
+                for _ in 0..100 {
+                    thread_stack.pop();
+                }
+            });
+            all_handles.push(handle);
+        }
+
+        for h in all_handles.into_iter() {
+            h.join().unwrap();
+        }
+        assert!(stack.pop().is_none());
     }
 }
