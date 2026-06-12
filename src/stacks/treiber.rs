@@ -1,3 +1,4 @@
+#[warn(missing_docs)]
 use std::{ptr, sync::atomic::{AtomicPtr, Ordering}};
 
 use crate::stacks::node::Node;
@@ -8,6 +9,13 @@ use crate::stacks::node::Node;
 pub struct TreiberStack<T> {
     head: AtomicPtr<Node<T>>,
 }
+
+/// Since `head` is an `AtomicPtr`, the compiler cannot automatically derive `Send` and `Sync` for `TreiberStack<T>`.
+/// 
+/// This is because `AtomicPtr` is not `Send` or `Sync` for `T` that is not `Send`.
+/// So we must implement `Send` and `Sync` manually to promise the compiler that `TreiberStack<T>` is Send and Sync when `T` is `Send`.
+unsafe impl<T: Send> Send for TreiberStack<T> {}
+unsafe impl<T: Send> Sync for TreiberStack<T> {}
 
 impl<T> TreiberStack<T> {
     pub fn new() -> Self {
