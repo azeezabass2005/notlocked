@@ -17,6 +17,16 @@ pub struct TreiberStack<T> {
 unsafe impl<T: Send> Send for TreiberStack<T> {}
 unsafe impl<T: Send> Sync for TreiberStack<T> {}
 
+/// Drops the stack, popping all elements.
+/// 
+/// If a non-empty stack is dropped, all the memory used by the stack will be leaked.
+/// So it's important to explicitly ensure that all the memories being used by the stack is freed to avoid this.
+impl<T> Drop for TreiberStack<T> {
+    fn drop(&mut self) {
+        while let Some(_) = self.pop() {}
+    }
+}
+
 impl<T> TreiberStack<T> {
     pub fn new() -> Self {
         Self {
