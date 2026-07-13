@@ -1,5 +1,4 @@
-// TODO: I want to implement an epoch based reclamation
-// From scratch!
+// See docs/concepts/epoch-based-reclamation.md
 
 use std::{
     cell::RefCell,
@@ -9,6 +8,7 @@ use std::{
     },
 };
 
+// See docs/concepts/epoch-based-reclamation.md#globalepoch
 struct GlobalEpoch {
     epoch: AtomicU64,
 }
@@ -31,6 +31,7 @@ impl GlobalEpoch {
     }
 }
 
+// See docs/concepts/epoch-based-reclamation.md#retired
 struct Retired {
     epoch: u64,
     ptr: *mut u8,
@@ -43,6 +44,7 @@ unsafe fn drop_data<T>(ptr: *mut u8) {
     unsafe { drop(Box::from_raw(ptr as *mut T)) }
 }
 
+// See docs/concepts/epoch-based-reclamation.md#threadlocalretired
 struct ThreadLocalRetired {
     retired: Vec<Retired>,
     collector: Option<Weak<Collector>>,
@@ -97,6 +99,7 @@ thread_local! {
     static RETIRED: RefCell<ThreadLocalRetired> = RefCell::new(ThreadLocalRetired::new());
 }
 
+// See docs/concepts/epoch-based-reclamation.md#localepoch
 struct LocalEpoch {
     epoch: AtomicU64,
     is_pinned: AtomicBool,
@@ -131,6 +134,7 @@ impl LocalEpoch {
     }
 }
 
+// See docs/concepts/epoch-based-reclamation.md#collector
 pub struct Collector {
     global: GlobalEpoch,
     registry: Mutex<Vec<Arc<LocalEpoch>>>,
@@ -175,6 +179,7 @@ impl Collector {
     }
 }
 
+// See docs/concepts/epoch-based-reclamation.md#guard
 pub struct Guard {
     collector: Arc<Collector>,
     local: Arc<LocalEpoch>,
@@ -213,6 +218,7 @@ impl Drop for Guard {
     }
 }
 
+// See docs/concepts/epoch-based-reclamation.md#collect
 fn collect(collector: &Arc<Collector>) {
     let global = collector.global_epoch();
 
